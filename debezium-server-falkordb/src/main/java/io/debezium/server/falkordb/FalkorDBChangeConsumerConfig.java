@@ -22,20 +22,6 @@ public class FalkorDBChangeConsumerConfig extends RedisCommonConfig {
     private static final Field PROP_BATCH_SIZE = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "batch.size")
             .withDefault(DEFAULT_BATCH_SIZE);
 
-    private static final String DEFAULT_NULL_KEY = "default";
-    private static final Field PROP_NULL_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "null.key")
-            .withDefault(DEFAULT_NULL_KEY);
-
-    private static final String DEFAULT_NULL_VALUE = "default";
-    private static final Field PROP_NULL_VALUE = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "null.value")
-            .withDefault(DEFAULT_NULL_VALUE);
-
-    static final String MESSAGE_FORMAT_COMPACT = "compact";
-    static final String MESSAGE_FORMAT_EXTENDED = "extended";
-    private static final Field PROP_MESSAGE_FORMAT = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "message.format")
-            .withAllowedValues(Set.of(MESSAGE_FORMAT_COMPACT, MESSAGE_FORMAT_EXTENDED))
-            .withDefault(MESSAGE_FORMAT_COMPACT);
-
     private static final int DEFAULT_MEMORY_LIMIT_MB = 0;
     private static final int DEFAULT_BUFFER_FILL_RATE = 30000;
     private static final Field PROP_MEMORY_LIMIT_MB = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "memory.limit.mb")
@@ -50,9 +36,6 @@ public class FalkorDBChangeConsumerConfig extends RedisCommonConfig {
             .withDefault(DEFAULT_SKIP_HEARTBEAT_MESSAGES);
 
     private int batchSize;
-    private String nullKey;
-    private String nullValue;
-    private String messageFormat;
     private int memoryThreshold;
     private int memoryLimitMb;
     private int batchDelay;
@@ -67,9 +50,6 @@ public class FalkorDBChangeConsumerConfig extends RedisCommonConfig {
     protected void init(Configuration config) {
         super.init(config);
         batchSize = config.getInteger(PROP_BATCH_SIZE);
-        nullKey = config.getString(PROP_NULL_KEY);
-        nullValue = config.getString(PROP_NULL_VALUE);
-        messageFormat = config.getString(PROP_MESSAGE_FORMAT);
         memoryLimitMb = config.getInteger(PROP_MEMORY_LIMIT_MB);
         bufferFillRate = config.getInteger(PROP_BUFFER_FILL_RATE);
         skipHeartbeatMessages = config.getBoolean(PROP_SKIP_HEARTBEAT_MESSAGES);
@@ -77,8 +57,7 @@ public class FalkorDBChangeConsumerConfig extends RedisCommonConfig {
 
     @Override
     protected List<Field> getAllConfigurationFields() {
-        List<Field> fields = Collect.arrayListOf(PROP_BATCH_SIZE, PROP_NULL_KEY, PROP_NULL_VALUE, PROP_MESSAGE_FORMAT,
-                PROP_SKIP_HEARTBEAT_MESSAGES);
+        List<Field> fields = Collect.arrayListOf(PROP_BATCH_SIZE, PROP_SKIP_HEARTBEAT_MESSAGES);
         fields.addAll(super.getAllConfigurationFields());
         return fields;
     }
@@ -93,18 +72,6 @@ public class FalkorDBChangeConsumerConfig extends RedisCommonConfig {
 
     public int getBatchDelay() {
         return batchDelay;
-    }
-
-    public String getNullKey() {
-        return nullKey;
-    }
-
-    public String getNullValue() {
-        return nullValue;
-    }
-
-    public String getMessageFormat() {
-        return messageFormat;
     }
 
     public int getMemoryThreshold() {

@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.falkordb.*;
+import io.debezium.storage.redis.JedisClient;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -42,6 +44,7 @@ import io.debezium.storage.redis.RedisClient;
 import io.debezium.storage.redis.RedisClientConnectionException;
 import io.debezium.storage.redis.RedisConnection;
 import io.debezium.util.DelayStrategy;
+import redis.clients.jedis.HostAndPort;
 
 /**
  * Implementation of the consumer that delivers the messages into FalkorDB
@@ -69,7 +72,7 @@ public class FalkorDBChangeConsumer extends BaseChangeConsumer
 
     private RedisMemoryThreshold redisMemoryThreshold;
 
-    private RedisStreamChangeConsumerConfig config;
+    private FalkorDBChangeConsumerConfig config;
 
     private String heartbeatPrefix;
 
@@ -81,7 +84,7 @@ public class FalkorDBChangeConsumer extends BaseChangeConsumer
 
         // Get Redis sink configuration
         Configuration configuration = Configuration.from(getConfigSubset(mpConfig, ""));
-        config = new RedisStreamChangeConsumerConfig(configuration);
+        config = new FalkorDBChangeConsumerConfig(configuration);
 
         // Get the heartbeat prefix from the configuration
         heartbeatPrefix = (String) sourceConfig.getOrDefault(HEARTBEAT_PREFIX_CONFIG, DEFAULT_HEARTBEAT_PREFIX);
@@ -111,9 +114,8 @@ public class FalkorDBChangeConsumer extends BaseChangeConsumer
             };
         }
 
-        RedisConnection redisConnection = RedisConnection.getInstance(config);
-        client = redisConnection.getRedisClient(DEBEZIUM_FALKORDB_SINK_CLIENT_NAME, config.isWaitEnabled(),
-                config.getWaitTimeout(), config.isWaitRetryEnabled(), config.getWaitRetryDelay());
+        HostAndPort hostAndPort =  HostAndPort.from(config.getAddress());
+        Graph client = FalkorDB.driver(hostAndPort.getHost(),hostAndPort.getPort(),config.getUser(),config.getPassword()).graph(config.getGraphName());
 
         redisMemoryThreshold = new RedisMemoryThreshold(client, config);
     }
@@ -209,7 +211,20 @@ public class FalkorDBChangeConsumer extends BaseChangeConsumer
                             delayStrategyOnRecordsConsumption.sleepWhen(true);
                             continue;
                         }
+
                         List<String> responses = client.xadd(recordsMap);
+
+                        GraphContextGenerator contextGraph = client.graph("contextSocial");
+                        // get connection context - closable object
+                        try (GraphContext c = api.getContext()) {
+                            GraphTransaction transaction = c.multi();
+
+                            transaction.query("CREATE (:Person {name:'a'})");
+                            transaction.query("CREATE (:Person {name:'b'})");
+//                          transaction.query("MATCH (n:Person{name:'a'}) RETURN n");
+                            transaction.callProcedure("db.labels");
+                            List<Object> results = transaction.exec();
+
                         List<ChangeEvent<Object, Object>> processedRecords = new ArrayList<ChangeEvent<Object, Object>>();
                         int index = 0;
                         int totalOOMResponses = 0;
